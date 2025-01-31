@@ -1,0 +1,224 @@
+#   THIS IS THE FINAL PROJECT FOR THE VETS IN TECH "PYTHON FUNDAMENTALS" COURSE.
+
+
+# SCENARIO: A group of investors is searching for multifamily apartment complexes (MF) that are currently for sale in the cities of: DALLAS, TEXAS & CHICAGO, ILLINOIS.
+#           The intent is to plan a trip to visit five properties in each city that fall within their investment paramaters.
+#           The investors need to know the distance (in miles) from the nearest international airport to each of the properties so that they can prepare for the trip. 
+#           The Investment Parameters are as follows:
+#               a) Currently on Market
+#               b) Property Valued between $3M & 10M
+#               c) Must be located within the cities of Dallas, Texas & Chicago, Illinois
+#               d) Must be a multifamily property (MF)
+
+
+    # FOR THE FINAL PROJECT, I TOOK EXTRA STEPS THAT WEREN'T REQUIRED, SO I COULD SHOW PROFICIENCY IN THE REQUIRED STEPS.
+    # (Importing bulk data, filtering, and exporting data to a new spreadsheet, importing filtered data from a spreadsheet, etc.) 
+
+
+# ------------------------------------------------------------------
+# STEP 1 - IMPORT 50 MULTIFAMILY APARTMENT COMPLEXES IN DALLAS, TEXAS & CHICAGO, ILLINOIS FROM THE RENTCAST API
+
+# 1. Setting Up My Environment & Installing Necessary Libraries
+
+# pip install openpyxl - if not already done
+
+import requests
+import json 
+
+# 2. Fetching Multifamily Family Apartment Complexes in Chicago, Illinois & Dallas, Texas from https://app.rentcast.io/app/api
+
+# My RentCast API key
+API_KEY = "626c9fb38e184afc9a3f42586ee4bc99"    # My API Key has been changed, since this was a subscription and I was out of pulls
+
+# API endpoint
+url = "https://app.rentcast.io/app/api"
+
+response = requests.get(url) 
+
+# print to verify we have a status code of 200
+
+print(response)     # <Response [200]> (500 if Server is down)
+
+
+# Fetching data from the API for Dallas, Texas (ON MARKET)
+# For this exercise we are pulling a bulk set of data from the API (50 property max)
+Dallas_Query2 = "https://api.rentcast.io/v1/listings/sale?city=Dallas&state=TX&propertyType=Multi-Family&status=Active"
+
+# Headers for authentication
+headers = {
+    "accept": "application/json",
+    "X-Api-Key": API_KEY
+}
+
+# Fetch data from the RentCast API
+ResponseDallas2 = requests.get(Dallas_Query2, headers=headers)
+
+# Check response status
+
+if ResponseDallas2.status_code == 200:
+    data = ResponseDallas2.json()  # Parse JSON response
+    print("Fetched Data:", data)
+    print(data)
+else:
+    print(f"Failed to fetch data. Status code: {ResponseDallas2.status_code}, Message: {ResponseDallas2.text}")
+
+
+
+print(f"Status Code: {ResponseDallas2.status_code}")
+print(f"Response Text: {ResponseDallas2.text}")
+
+
+
+# Fetching data from the API for Chicago, Illinois (ON MARKET)
+# For this exercise we are pulling a bulk set of data from the API (50 property max)
+Chicago_Query2 = "https://api.rentcast.io/v1/listings/sale?city=Chicago&state=IL&propertyType=Multi-Family&status=Active"
+
+# Headers for authentication
+headers = {
+    "accept": "application/json",
+    "X-Api-Key": API_KEY
+}
+
+# Fetch data from the RentCast API
+ResponseChicago2 = requests.get(Chicago_Query2, headers=headers)
+
+# Check response status
+
+if ResponseChicago2.status_code == 200:
+    data = ResponseChicago2.json()  # Parse JSON response
+    print("Fetched Data:", data)
+    print(data)
+else:
+    print(f"Failed to fetch data. Status code: {ResponseChicago2.status_code}, Message: {ResponseChicago2.text}")
+
+
+
+print(f"Status Code: {ResponseChicago2.status_code}")
+print(f"Response Text: {ResponseChicago2.text}")
+
+
+# Write Data to an Excel File
+
+import requests
+import pandas as pd
+
+# Fetch data for Dallas
+Dallas_Data2 = ResponseDallas2.json() if ResponseDallas2.status_code == 200 else []
+
+# Fetch data for Chicago
+Chicago_Data2 = ResponseChicago2.json() if ResponseChicago2.status_code == 200 else []
+
+# Convert JSON responses to DataFrames
+df_dallas2 = pd.DataFrame(Dallas_Data2)
+df_chicago2 = pd.DataFrame(Chicago_Data2)
+
+# Create five blank rows (to separate datasets)
+empty_rows = pd.DataFrame([[""] * len(df_dallas2.columns)] * 5, columns=df_dallas2.columns)
+
+# Combine both DataFrames with a gap
+df_combined = pd.concat([df_dallas2, empty_rows, df_chicago2], ignore_index=True)
+
+# Define the file path
+file_path = r"C:/Users/moise/Downloads/Data Analysis/VetsInTech/Python Fundamentals/Final Project/Final Project On Market Bulk CRE Data.xlsx"
+
+# Save to Excel
+df_combined.to_excel(file_path, index=False)
+
+#Test to see if data was successfully saved to the Excel file
+print(f"Data successfully saved to {file_path}")
+
+
+# ------------------------------------------------------------------
+
+# STEP 2 - IMPORT THE ABOVE WORKBOOK AND FILTER THE DATA TO IMPORT THE PROPERTIES WITHIN BOTH CITIES THAT FALL UNDER THE INVESTMENT CRITERIA.
+                # For this step I am only going to pull the following fields: formattedAddress, latitude, longitude, city & price of the properties. 
+
+
+# Importing the properties in both cities and saving them to variables DallasTripProperties & ChicagoTripProperties for later use
+
+
+import pandas as pd
+
+# Define file path
+file_path = r"C:/Users/moise/Downloads/Data Analysis/VetsInTech/Python Fundamentals/Final Project/Final Project On Market Bulk CRE Data.xlsx"
+
+# Load Excel file
+df = pd.read_excel(file_path)
+
+# Select relevant columns
+filtered_df = df[["formattedAddress", "latitude", "longitude", "price", "city"]]
+
+# Convert "price" to numeric and filter properties between $3M and $10M
+filtered_df["price"] = pd.to_numeric(filtered_df["price"], errors="coerce")
+filtered_df = filtered_df[(filtered_df["price"] >= 3_000_000) & (filtered_df["price"] <= 10_000_000)]
+
+# Separate properties based on the city (Column E is "city")
+DallasTripProperties = filtered_df[filtered_df["city"].str.lower() == "dallas"].to_dict(orient="records")
+ChicagoTripProperties = filtered_df[filtered_df["city"].str.lower() == "chicago"].to_dict(orient="records")
+
+# Print the dictionaries to verify
+print("DallasTripProperties:", DallasTripProperties)       # only 5 properties from our bulk data
+print("ChicagoTripProperties:", ChicagoTripProperties)     # only 1 property 
+
+print(type(DallasTripProperties))      # <class 'list'>
+print(type(ChicagoTripProperties))     # <class 'list'>
+
+
+
+
+# STEP 3 - USE THE IMPORTED DATA TO FETCH THE DISTANCE FROM THE PROPERTY TO THE AIRPORTS IN THE CITIES OF DALLAS, TEXAS & CHICAGO, ILLINOIS FROM THE MAP API.
+
+
+import requests
+import json
+
+# Define the API endpoint
+DISTANCE_API_URL = "https://api.apiverve.com/v1/distancecalculator"
+
+# Define the API key
+API_KEY = "d493c4b0-5683-4dd0-9815-80248ed559f2"
+
+# Defining the coordinates for the airports in Dallas, Texas & Chicago, Illinois
+
+ChicagoAirport = "41.9803, -87.9067" 
+DallasAirport = "32.7767, -96.7970"
+
+
+# Function to calculate distance
+def get_distance(lat1, lon1, lat2, lon2):
+    querystring = {'lat1': lat1, 'lon1': lon1, 'lat2': lat2, 'lon2': lon2}
+    headers = {"x-api-key": API_KEY}
+    response = requests.get(DISTANCE_API_URL, headers=headers, params=querystring)
+
+    if response.status_code == 200:
+        return response.json().get("distance", "N/A")  # Extract distance if available
+    else:
+        print(f"Error: {response.status_code}, {response.text}")
+        return "N/A"
+
+# Function to add distance to each property
+def add_distance_info(properties, airport):
+    for prop in properties:
+        prop["distance_to_airport"] = get_distance(
+            prop["latitude"], prop["longitude"], airport[0], airport[1]
+        )
+    return properties
+
+# Separate properties by city
+DallasTripProperties = filtered_df[filtered_df["city"].str.lower() == "dallas"].to_dict(orient="records")
+ChicagoTripProperties = filtered_df[filtered_df["city"].str.lower() == "chicago"].to_dict(orient="records")
+
+# Add distance to airport for each property
+DallasTripProperties = add_distance_info(DallasTripProperties, DallasAirport)
+ChicagoTripProperties = add_distance_info(ChicagoTripProperties, ChicagoAirport)
+
+# Print results
+print("Dallas Trip Properties:", DallasTripProperties)
+print("Chicago Trip Properties:", ChicagoTripProperties)
+
+#----------------------
+
+#   AT THIS POINT I'M RECEIVING A DISTANCE OF "O", WHICH MEANS THAT MY CODE IS INCORRECT.
+#   IT NEEDS TO BE DEBUGGED, AND I NEED TO FIX THE ISSUE; HOWEVER, I WANTED TO TURN IT IN AS IT IS, TO SATISFY THE PROJECT REQUIREMENTS.
+
+
